@@ -96,6 +96,6 @@ public class Botdiril
 
     public String getRepositoryURL()
     {
-        return "https://github.com/493msi/botdiril400";
+        return "https://github.com/botdiril/botdiril";
     }
 }
