@@ -27,7 +27,7 @@ public class BotdirilEventListener extends ListenerAdapter
     @Override
     public void onModalInteraction(@NotNull ModalInteractionEvent event)
     {
-        super.onModalInteraction(event);
+
     }
 
     @Override

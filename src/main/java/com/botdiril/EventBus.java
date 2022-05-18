@@ -10,6 +10,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.botdiril.command.CommandManager;
 import com.botdiril.serverdata.GuildPrefixMatcher;
 
 public class EventBus extends BotdirilComponent
@@ -17,6 +18,8 @@ public class EventBus extends BotdirilComponent
     private final Botdiril botdiril;
 
     private GuildPrefixMatcher guildPrefixMatcher;
+
+    private CommandManager commandManager;
 
     public final ReentrantReadWriteLock ACCEPTING_COMMANDS;
 
@@ -32,6 +35,7 @@ public class EventBus extends BotdirilComponent
     protected void onMount(AbstractComponent<BotdirilComponent>.ComponentDependencyManager manager) throws Exception
     {
         this.guildPrefixMatcher = manager.declareDependency(ComponentToken.create(() -> new GuildPrefixMatcher(this.botdiril)));
+        this.commandManager = manager.declareDependency(ComponentToken.create(() -> new CommandManager(this.botdiril)));
         this.commandThreadPool = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors());
     }
 
@@ -87,7 +91,25 @@ public class EventBus extends BotdirilComponent
                 if (!match.matched())
                     return;
 
+                var prefix = match.prefixValue();
+                var prefixLength = prefix.codePoints()
+                                         .count();
 
+                var contentNoPrefix = content.codePoints()
+                                             .limit(prefixLength)
+                                             .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                                             .toString();
+
+                var cmdParts =  content.split("\\s+", 2);
+                var cmdStr = cmdParts[0];
+                var cmdParams =  cmdParts.length == 2 ? cmdParts[1] : "";
+
+                var command = this.commandManager.findCommand(cmdStr);
+
+                if (command == null)
+                    return;
+
+                var info = command.getInfo();
             }
         }
     }

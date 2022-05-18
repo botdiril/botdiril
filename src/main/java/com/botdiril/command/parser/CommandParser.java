@@ -1,5 +1,7 @@
 package com.botdiril.command.parser;
 
+import com.google.protobuf.Message;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
@@ -12,6 +14,7 @@ import com.botdiril.command.CommandIntrospector;
 import com.botdiril.command.CommandManager;
 import com.botdiril.command.EnumSpecialCommandProperty;
 import com.botdiril.command.context.DiscordCommandContext;
+import com.botdiril.command.context.MessageCommandContext;
 import com.botdiril.command.invoke.CommandException;
 import com.botdiril.command.invoke.CommandParam;
 import com.botdiril.command.usage.DefaultUsageGenerator;
@@ -25,35 +28,8 @@ public class CommandParser
 {
     private CommandManager commandManager;
 
-    public boolean parse(DiscordCommandContext co)
+    public boolean parse(MessageCommandContext co)
     {
-        var cmdParts =  co.contents.split("\\s+", 2);
-        var cmdStr = cmdParts[0];
-        var cmdParams =  cmdParts.length == 2 ? cmdParts[1] : "";
-
-        var command = this.commandManager.findCommand(cmdStr);
-
-        if (command == null)
-        {
-            return true;
-        }
-
-        var info = command.getInfo();
-
-        if (info == null)
-        {
-            // Default config
-            // Power level is set to executive superuser just in case; to avoid deadly mistakes
-            info = new CommandInfo(
-                Set.of(),
-                PowerLevel.SUPERUSER_OVERRIDE,
-                0,
-                "<description missing>",
-                EnumSet.noneOf(EnumSpecialCommandProperty.class)
-            );
-        }
-
-        co.usedAlias = cmdStr;
 
 
         var powerLevel = info.powerLevel();
