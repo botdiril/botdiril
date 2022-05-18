@@ -35,4 +35,15 @@ public record CommandInfo(
             );
         }
     }
+
+    static CommandInfo defaultValue()
+    {
+        return new CommandInfo(
+            Set.of(),
+            PowerLevel.SUPERUSER_OVERRIDE,
+            0,
+            "<description missing>",
+            EnumSet.noneOf(EnumSpecialCommandProperty.class)
+        );
+    }
 }

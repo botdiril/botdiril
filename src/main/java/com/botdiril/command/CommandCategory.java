@@ -5,9 +5,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Stream;
 
 import com.botdiril.framework.util.BotdirilInitializationException;
 import com.botdiril.util.BotdirilLog;
@@ -18,11 +17,12 @@ public class CommandCategory
 
     private CategoryInfo info;
 
-    private Set<CommandBase> commands;
+    private final SortedSet<CommandMetadata> commands;
 
     private CommandCategory(String name)
     {
         this.name = name;
+        this.commands = new TreeSet<>();
     }
 
     public static CommandCategory load(String name)
@@ -42,33 +42,11 @@ public class CommandCategory
         {
             throw new BotdirilInitializationException("Failed to initialize command groups:", e);
         }
+    }
 
-        var commands = CommandCompiler.load();
-
-        commands.forEach((command, clazz) -> {
-            var commandName = command.value();
-
-            this.logger.info("%s of '%s'".formatted(commandName, clazz));
-
-            var info = commandNameToInfoMap.get(commandName);
-
-            if (info == null)
-            {
-                this.logger.error("Command '%s' info not found!".formatted(commandName));
-                return;
-            }
-
-            var category = commandNameToCategoryMap.get(commandName);
-
-            this.commandInfoMap.put(command, info);
-            this.categoryMap.get(category).add(command);
-            this.classMap.put(command, clazz);
-
-            this.aliasMap.put(command.value(), command);
-            for (var alias : info.aliases())
-                this.aliasMap.put(alias, command);
-
-        });
+    void addCommand(CommandMetadata command)
+    {
+        this.commands.add(command);
     }
 
     public String getName()
@@ -81,8 +59,13 @@ public class CommandCategory
         return this.info;
     }
 
-    public Set<CommandBase> getCommands()
+    public Set<CommandMetadata> getCommands()
     {
         return Collections.unmodifiableSet(this.commands);
+    }
+
+    public Stream<CommandMetadata> commands()
+    {
+        return this.commands.stream();
     }
 }
