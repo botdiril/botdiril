@@ -1,4 +1,3 @@
-groups:
-  - administrative
-  - general
-  - superuser
+- administrative
+- general
+- superuser

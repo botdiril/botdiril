@@ -11,11 +11,17 @@ import com.botdiril.util.BotdirilLog;
 
 public class BotdirilEventListener extends ListenerAdapter
 {
+    private final EventBus eventBus;
+
+    BotdirilEventListener(EventBus eventBus)
+    {
+        this.eventBus = eventBus;
+    }
 
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event)
     {
-
+        eventBus.onMessage(event);
     }
 
     @Override

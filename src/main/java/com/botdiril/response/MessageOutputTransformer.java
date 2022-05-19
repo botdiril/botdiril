@@ -1,9 +1,6 @@
 package com.botdiril.response;
 
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.botdiril.userdata.icon.Icons;
 
 public class MessageOutputTransformer
 {
@@ -32,7 +29,6 @@ public class MessageOutputTransformer
 
             return switch (specifier)
             {
-                case '!' -> Icons.getOrDefault(tag, Matcher.quoteReplacement(tag));
                 default -> tag;
             };
         });

@@ -1,18 +1,25 @@
 package com.botdiril.permission;
 
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import net.dv8tion.jda.api.entities.User;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class PowerLevel
+import com.botdiril.BotdirilStatic;
+
+@JsonDeserialize(using = PowerLevel.PowerLevelDeserializer.class)
+public final class PowerLevel
 {
     private final String formalName;
-    private final BiPredicate<Member, TextChannel> predicate;
+    private final Predicate<User> predicate;
     private final Set<PowerLevel> cumulativePowers;
     private final Set<PowerLevel> managedPowers;
     private final boolean assignable;
@@ -20,20 +27,24 @@ public class PowerLevel
     private final String id;
     private final String description;
 
-    PowerLevel(String formalName, String description, Set<PowerLevel> inheritsFrom, BiPredicate<Member, TextChannel> preconditions, boolean assignable, String id)
+    PowerLevel(String id,
+               String formalName,
+               String description,
+               Set<PowerLevel> inheritsFrom,
+               Predicate<User> implicitGrantPredicate,
+               boolean assignable)
     {
-        this.description = description;
-        this.formalName = formalName;
-        this.predicate = preconditions;
-        this.assignable = assignable;
         this.id = id;
+        this.formalName = formalName;
+        this.description = description;
+        this.assignable = assignable;
+        this.predicate = implicitGrantPredicate;
 
-        this.cumulativePowers = inheritsFrom
-            .stream()
-            .map(PowerLevel::getImplicitCumulativePowers)
-            .flatMap(Set::stream)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toSet());
+        this.cumulativePowers = inheritsFrom.stream()
+                                            .map(PowerLevel::getImplicitCumulativePowers)
+                                            .flatMap(Set::stream)
+                                            .filter(Objects::nonNull)
+                                            .collect(Collectors.toSet());
 
         this.managedPowers = Set.copyOf(this.cumulativePowers);
 
@@ -65,9 +76,9 @@ public class PowerLevel
         return Collections.unmodifiableSet(this.cumulativePowers);
     }
 
-    public boolean isImplicitlyGranted(Member member, TextChannel tc)
+    public boolean isImplicitlyGranted(User user)
     {
-        return this.predicate.test(member, tc);
+        return this.predicate.test(user);
     }
 
     public boolean isParentOf(PowerLevel permLevel)
@@ -75,7 +86,8 @@ public class PowerLevel
         if (permLevel == this)
             return true;
 
-        return this.getImplicitCumulativePowers().contains(permLevel);
+        return this.getImplicitCumulativePowers()
+                   .contains(permLevel);
     }
 
     public boolean isChildOf(PowerLevel permLevel)
@@ -83,12 +95,47 @@ public class PowerLevel
         if (permLevel == this)
             return true;
 
-        return permLevel.getImplicitCumulativePowers().contains(this);
+        return permLevel.getImplicitCumulativePowers()
+                        .contains(this);
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (!(obj instanceof PowerLevel pwr))
+            return false;
+
+        return this.id.equals(pwr.id);
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return this.id.hashCode();
     }
 
     @Override
     public String toString()
     {
         return this.formalName;
+    }
+
+    public static class PowerLevelDeserializer extends StdDeserializer<PowerLevel>
+    {
+        protected PowerLevelDeserializer()
+        {
+            super(PowerLevel.class);
+        }
+
+        @Override
+        public PowerLevel deserialize(JsonParser p, DeserializationContext ctxt) throws IOException
+        {
+            var name = ctxt.readValue(p, String.class);
+            var pwrMgr = BotdirilStatic.getBotdiril()
+                                       .getComponents()
+                                       .getComponent(AbstractPowerLevelManager.class);
+
+            return pwrMgr.getByName(name.toLowerCase());
+        }
     }
 }

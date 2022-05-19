@@ -31,8 +31,6 @@ sourceSets {
 
         val data = create("data") {
             java.srcDirs("assets/data/java")
-
-            compileClasspath += mainSet.compileClasspath
         }
 
         create("util") {
@@ -40,11 +38,6 @@ sourceSets {
 
             compileClasspath += data.compileClasspath + data.output
             runtimeClasspath += data.compileClasspath + data.output
-        }
-
-        main {
-            compileClasspath += data.output
-            runtimeClasspath += data.output
         }
     }
 }
@@ -83,8 +76,9 @@ tasks.withType<com.botdiril.framework.util.BuildSchemasTask> {
 apply(plugin = "com.botdiril.botdiril-schema-autocompile-plugin")
 
 dependencies {
-    api("com.botdiril", "botdiril-sql-framework", "0.3.0")
+    "dataImplementation"(api("com.botdiril", "botdiril-sql-framework", "0.3.0"))
 
+    api(sourceSets["data"].output)
     testImplementation(files("$buildDir/generated/botdiril-sql"))
 
     api("org.plutoengine", "plutolib", "22.3.0.0-alpha.0")

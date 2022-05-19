@@ -23,4 +23,10 @@ public class GuildMessageCommandContext extends MessageCommandContext
     {
         return this.member;
     }
+
+    @Override
+    public TextChannel getChannel()
+    {
+        return (TextChannel) super.getChannel();
+    }
 }

@@ -1,19 +1,20 @@
 package com.botdiril.command;
 
-import net.dv8tion.jda.api.EmbedBuilder;
-
-import com.botdiril.command.context.DiscordCommandContext;
+import com.botdiril.command.context.CommandContext;
+import com.botdiril.response.ResponseEmbed;
 
 @Command("ping")
-public class CommandPing
+public class CommandPing extends CommandBase
 {
-    public static void ping(DiscordCommandContext co)
+    public static void ping(CommandContext co)
     {
-        var eb = new EmbedBuilder();
-        eb.setAuthor("Botdiril Debug Commands", null, co.bot.getEffectiveAvatarUrl());
+        var jda = co.getJDA();
+
+        var eb = new ResponseEmbed();
+        eb.setAuthor("Botdiril Debug Commands", null, co.getBotIconURL());
         eb.setTitle("Pong.");
         eb.setColor(0x008080);
-        eb.setDescription(co.jda.getGatewayPing() + " ms");
+        eb.setDescription(jda.getGatewayPing() + " ms");
 
         co.respond(eb);
     }

@@ -1,43 +1,47 @@
 package com.botdiril.command;
 
-import com.botdiril.command.context.DiscordCommandContext;
-import com.botdiril.command.invoke.CommandParam;
-import com.botdiril.permission.PowerLevel;
+import net.dv8tion.jda.api.entities.User;
 
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Member;
-
-import java.time.Instant;
 import java.util.Comparator;
 
+import com.botdiril.BotdirilStatic;
+import com.botdiril.command.context.CommandContext;
+import com.botdiril.command.invoke.CommandParam;
+import com.botdiril.permission.AbstractPowerLevelManager;
+import com.botdiril.permission.PowerLevel;
+import com.botdiril.response.ResponseEmbed;
+
 @Command("powers")
-public class CommandMyPowers
+public class CommandMyPowers extends CommandBase
 {
-    public static void print(DiscordCommandContext co)
+    public static void print(CommandContext co)
     {
-        print(co, co.callerMember);
+        print(co, co.getCaller());
     }
 
-    public static void print(DiscordCommandContext co, @CommandParam("user") Member user)
+    public static void print(CommandContext co, @CommandParam(value = "user", ordinal = 0) User user)
     {
-        if (user.getUser().isBot())
+        if (user.isBot())
         {
             co.respond("This command can't be used on bots.");
             return;
         }
 
-        var eb = new EmbedBuilder();
+        var eb = new ResponseEmbed();
         eb.setColor(0x008080);
         eb.setTitle("Power Listing");
         eb.setDescription(user.getAsMention() + "'s powers:");
-        eb.setThumbnail(user.getUser().getEffectiveAvatarUrl());
-        eb.setFooter("User ID: " + user.getUser().getIdLong(), null);
-        eb.setTimestamp(Instant.now());
+        eb.setThumbnail(user.getEffectiveAvatarUrl());
+        eb.setFooter("User ID: " + user.getIdLong(), null);
 
-        PowerLevel.getCumulativePowers(co.db, user, co.textChannel)
-            .stream()
-            .sorted(Comparator.comparing(PowerLevel::toString))
-            .forEach(c -> eb.addField(c.toString(), c.getDescription(), false));
+        var pwr = BotdirilStatic.getBotdiril()
+                                .getComponents()
+                                .getComponent(AbstractPowerLevelManager.class);
+
+        pwr.getCumulativePowers(co.getDatabase(), user)
+           .stream()
+           .sorted(Comparator.comparing(PowerLevel::toString))
+           .forEach(c -> eb.addField(c.toString(), c.getDescription(), false));
 
         co.respond(eb);
     }

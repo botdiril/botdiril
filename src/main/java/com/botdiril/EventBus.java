@@ -1,6 +1,7 @@
 package com.botdiril;
 
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.EventListener;
 import org.plutoengine.component.AbstractComponent;
 import org.plutoengine.component.ComponentToken;
 
@@ -10,7 +11,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import com.botdiril.command.CommandManager;
+import com.botdiril.command.ICommandManager;
+import com.botdiril.permission.IPowerLevelManager;
 import com.botdiril.serverdata.GuildPrefixMatcher;
 
 public class EventBus extends BotdirilComponent
@@ -19,23 +21,31 @@ public class EventBus extends BotdirilComponent
 
     private GuildPrefixMatcher guildPrefixMatcher;
 
-    private CommandManager commandManager;
+    private ICommandManager commandManager;
+
+    private IPowerLevelManager powerLevelManager;
 
     public final ReentrantReadWriteLock ACCEPTING_COMMANDS;
 
     private ExecutorService commandThreadPool;
 
+    private final EventListener[] listeners;
+
     public EventBus(Botdiril botdiril)
     {
         this.botdiril = botdiril;
         this.ACCEPTING_COMMANDS = new ReentrantReadWriteLock();
+        this.listeners = new EventListener[] {
+            new BotdirilEventListener(this)
+        };
     }
 
     @Override
-    protected void onMount(AbstractComponent<BotdirilComponent>.ComponentDependencyManager manager) throws Exception
+    protected void onMount(AbstractComponent<BotdirilComponent>.ComponentDependencyManager manager)
     {
         this.guildPrefixMatcher = manager.declareDependency(ComponentToken.create(() -> new GuildPrefixMatcher(this.botdiril)));
-        this.commandManager = manager.declareDependency(ComponentToken.create(() -> new CommandManager(this.botdiril)));
+        this.powerLevelManager = manager.declareDependency(ComponentToken.create(this.botdiril::createPowerLevelManager));
+        this.commandManager = manager.declareDependency(ComponentToken.create(this.botdiril::createCommandManager));
         this.commandThreadPool = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors());
     }
 
@@ -53,7 +63,7 @@ public class EventBus extends BotdirilComponent
         }
     }
 
-    private void onMessage(MessageReceivedEvent event)
+    void onMessage(MessageReceivedEvent event)
     {
         CompletableFuture.runAsync(() -> this.withExecutionLock(() -> this.handleMessage(event)), this.commandThreadPool);
     }
@@ -96,11 +106,11 @@ public class EventBus extends BotdirilComponent
                                          .count();
 
                 var contentNoPrefix = content.codePoints()
-                                             .limit(prefixLength)
+                                             .skip(prefixLength)
                                              .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                                              .toString();
 
-                var cmdParts =  content.split("\\s+", 2);
+                var cmdParts = contentNoPrefix.split("\\s+", 2);
                 var cmdStr = cmdParts[0];
                 var cmdParams =  cmdParts.length == 2 ? cmdParts[1] : "";
 
@@ -109,8 +119,13 @@ public class EventBus extends BotdirilComponent
                 if (command == null)
                     return;
 
-                var info = command.getInfo();
+                System.out.println(command);
             }
         }
+    }
+
+    public EventListener[] getListeners()
+    {
+        return this.listeners;
     }
 }

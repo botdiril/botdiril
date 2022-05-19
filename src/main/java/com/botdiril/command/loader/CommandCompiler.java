@@ -99,7 +99,10 @@ public class CommandCompiler extends BotdirilComponent
         var annt = clazz.getDeclaredAnnotation(Command.class);
 
         if (annt != null && !CommandBase.class.isAssignableFrom(clazz))
+        {
             BotdirilLog.logger.warn("Command '%s' is annotated as a command but does not subclass '%s'. It will not be registered!".formatted(clazz, CommandBase.class));
+            return null;
+        }
 
         return annt;
     }

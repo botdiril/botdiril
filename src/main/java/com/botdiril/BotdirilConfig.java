@@ -26,7 +26,19 @@ public class BotdirilConfig
     private String sqlPass;
 
     private static final Path CONFIG_FILE = Path.of("settings.json");
-    public static final String UNIVERSAL_PREFIX = "botdiril.";
+
+    public BotdirilConfig()
+    {
+
+    }
+
+    public BotdirilConfig(String apiKey, String sqlHost, String sqlUser, String sqlPass)
+    {
+        this.apiKey = apiKey;
+        this.sqlHost = sqlHost;
+        this.sqlUser = sqlUser;
+        this.sqlPass = sqlPass;
+    }
 
     public static BotdirilConfig load() throws IOException
     {

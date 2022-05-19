@@ -1,10 +1,9 @@
 package com.botdiril.util;
 
-import org.apache.commons.lang3.EnumUtils;
-
-import com.botdiril.command.Command;
-import com.botdiril.command.CommandManager;
+import com.botdiril.BotdirilStatic;
 import com.botdiril.command.CommandCategory;
+import com.botdiril.command.CommandManager;
+import com.botdiril.command.CommandMetadata;
 import com.botdiril.command.invoke.CommandException;
 
 public class CommandAssert
@@ -117,9 +116,13 @@ public class CommandAssert
 
     // PARSERS
 
-    public static Command parseCommand(String arg)
+    public static CommandMetadata parseCommand(String arg)
     {
-        var cmd = CommandManager.findCommand(arg);
+        var cmdMgr = BotdirilStatic.getBotdiril()
+                                   .getComponents()
+                                   .getComponent(CommandManager.class);
+
+        var cmd = cmdMgr.findCommand(arg.trim().toLowerCase());
 
         if (cmd == null)
             throw new CommandException("No such command.");
@@ -129,7 +132,11 @@ public class CommandAssert
 
     public static CommandCategory parseCommandGroup(String name)
     {
-        var cg = EnumUtils.getEnumIgnoreCase(CommandCategory.class, name.trim());
+        var cmdMgr = BotdirilStatic.getBotdiril()
+                                   .getComponents()
+                                   .getComponent(CommandManager.class);
+
+        var cg = cmdMgr.findCategory(name.trim().toLowerCase());
 
         if (cg == null)
         {

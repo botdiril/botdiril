@@ -22,6 +22,11 @@ public abstract class CommandContext
     protected IResponse response;
     protected boolean shouldSend = false;
 
+    public WriteDBConnection getDatabase()
+    {
+        return this.db;
+    }
+
     public JDA getJDA()
     {
         return this.jda;
@@ -35,6 +40,11 @@ public abstract class CommandContext
     public String getBotIconURL()
     {
         return this.botIconURL;
+    }
+
+    public User getCaller()
+    {
+        return this.caller;
     }
 
     public void clearResponse()

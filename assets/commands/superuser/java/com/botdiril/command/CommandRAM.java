@@ -4,12 +4,12 @@ import com.botdiril.command.context.CommandContext;
 import com.botdiril.response.ResponseEmbed;
 
 @Command("memory")
-public class CommandRAM
+public class CommandRAM extends CommandBase
 {
     public static void print(CommandContext co)
     {
         var eb = new ResponseEmbed();
-        eb.setAuthor("Botdiril Debug Commands", null, co.botIconURL);
+        eb.setAuthor("Botdiril Debug Commands", null, co.getBotIconURL());
         eb.setTitle("Memory information.");
         eb.setColor(0x008080);
 

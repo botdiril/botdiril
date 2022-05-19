@@ -1,105 +1,111 @@
 package com.botdiril.permission;
 
-import com.botdiril.framework.sql.connection.ReadDBConnection;
-import com.botdiril.serverdata.RolePreferences;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.User;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
-import com.botdiril.framework.sql.DBConnection;
+import com.botdiril.framework.sql.connection.ReadDBConnection;
 
-public class PowerLevelManager
+public final class PowerLevelManager extends AbstractPowerLevelManager
 {
-    private final Map<String, PowerLevel> nameLookup = new HashMap<>();
+    private PowerLevel defaultPowerLevel;
 
-    public boolean check(ReadDBConnection db, Member member, TextChannel tc)
+    private PowerLevelManager(Set<PowerLevel> powerLevels)
     {
-        final var roles = member.getRoles();
-
-        var pl = RolePreferences.getAllPowerLevels(db, roles);
-        pl.addAll(PowerLevelManager.getImplicitlyGrantedPowers(member, tc));
-
-        return pl
-            .stream()
-            .anyMatch(this::isChildOf);
+        super(powerLevels);
     }
 
-    /**
-     * Generates a set of all power levels the member receives automatically
-     * just from being in that channel.
-     *
-     * <p>
-     *     This function works cumulatively.
-     * </p>
-     *
-     * @param member The target member
-     * @param tc The channel the command was invoked in
-     * @return A set of all power levels that match the member's state
-     */
-    static Set<PowerLevel> getImplicitlyGrantedPowers(Member member, TextChannel tc)
+    public boolean check(ReadDBConnection db, User user, PowerLevel powerLevel)
     {
-        return Arrays
-            .stream(PowerLevel.values())
-            .filter(powerLevel -> powerLevel.isImplicitlyGranted(member, tc))
-            .collect(Collectors.toSet());
+        return this.getCumulativePowers(db, user)
+                   .stream()
+                   .anyMatch(powerLevel::isChildOf);
     }
 
-    /**
-     * Generates a set of all power levels the member possesses in the denoted channel.
-     *
-     * <p>
-     *     This function works cumulatively.
-     * </p>
-     *
-     * @param db A connection to a database
-     * @param member The target member
-     * @param tc The channel the command was invoked in
-     * @return A set of all power levels this user this user possesses
-     */
-    public static Set<PowerLevel> getCumulativePowers(DBConnection db, Member member, TextChannel tc)
+    public static PowerLevelManager create(PowerLevelTreeBuilderFunction function)
     {
-        final var roles = member.getRoles();
-
-        var pl = getImplicitlyGrantedPowers(member, tc);
-
-        pl.addAll(RolePreferences.getAllPowerLevels(db, roles));
-
-        return  pl.stream()
-            .map(PowerLevel::getImplicitCumulativePowers)
-            .flatMap(Set::stream)
-            .collect(Collectors.toUnmodifiableSet());
+        var builder = new PowerLevelTreeBuilder();
+        function.declareTree(builder);
+        var inst = new PowerLevelManager(builder.get());
+        inst.defaultPowerLevel = builder.defaultPowerLevel;
+        return inst;
     }
 
-    /**
-     * Generates a set of all power levels the member can manage in the denoted channel.
-     *
-     * <p>
-     *     This function works cumulatively.
-     * </p>
-     *
-     * @param db A database connection
-     * @param member The target member
-     * @param tc The channel the command was invoked in
-     * @return A set of all power levels this user can manage
-     */
-    public static Set<PowerLevel> getManageablePowers(DBConnection db, Member member, TextChannel tc)
+    @FunctionalInterface
+    public interface PowerLevelTreeBuilderFunction
     {
-        var manageable = getCumulativePowers(db, member, tc);
+        void declareTree(PowerLevelTreeBuilder builder);
+    }
 
-        if (!PowerLevel.SUPERUSER.check(db, member, tc))
+    public static class PowerLevelTreeBuilder
+    {
+        private final Set<PowerLevel> powerLevels;
+        protected PowerLevel defaultPowerLevel;
+
+        private PowerLevelTreeBuilder()
         {
-            return Set.of();
+            this.powerLevels = new HashSet<>();
         }
 
-        return manageable.stream()
-            .filter(PowerLevel::isAssignable)
-            .map(PowerLevel::getManagedPowers)
-            .flatMap(Set::stream)
-            .collect(Collectors.toUnmodifiableSet());
+        public PowerLevel declarePowerLevel(String id, String name, String description, Consumer<PowerLevelExtraDeclaration> extraPropertiesClosure)
+        {
+            var extraPropertyDecl = new PowerLevelExtraDeclaration();
+
+            extraPropertiesClosure.accept(extraPropertyDecl);
+
+            var powerLevel = new PowerLevel(id, name, description, extraPropertyDecl.superPowers, extraPropertyDecl.implicitGrantPredicate, extraPropertyDecl.assignable);
+
+            this.powerLevels.add(powerLevel);
+
+            return powerLevel;
+        }
+
+        public void setDefaultPowerLevel(PowerLevel powerLevel)
+        {
+            this.defaultPowerLevel = powerLevel;
+        }
+
+        private Set<PowerLevel> get()
+        {
+            return this.powerLevels;
+        }
+    }
+
+    public static class PowerLevelExtraDeclaration
+    {
+        private Set<PowerLevel> superPowers;
+        private Predicate<User> implicitGrantPredicate;
+        private boolean assignable;
+
+        private PowerLevelExtraDeclaration()
+        {
+            this.superPowers = Set.of();
+            this.implicitGrantPredicate = user -> false;
+            this.assignable = false;
+        }
+
+        public void inherits(PowerLevel... powerLevels)
+        {
+            this.superPowers = Set.of(powerLevels);
+        }
+
+        public void implicitlyGrantedOn(Predicate<User> predicate)
+        {
+            this.implicitGrantPredicate = predicate;
+        }
+
+        public void setAssignable(boolean assignable)
+        {
+            this.assignable = assignable;
+        }
+    }
+
+    @Override
+    public PowerLevel getDefault()
+    {
+        return this.defaultPowerLevel;
     }
 }

@@ -17,11 +17,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.botdiril.Botdiril;
-import com.botdiril.BotdirilComponent;
 import com.botdiril.command.loader.CommandCompiler;
 import com.botdiril.framework.util.BotdirilInitializationException;
 
-public class CommandManager extends BotdirilComponent
+public class CommandManager extends AbstractCommandManager
 {
     private final Logger logger = LogManager.getLogger(CommandManager.class);
 
@@ -108,8 +107,14 @@ public class CommandManager extends BotdirilComponent
                         handle
                     );
 
+                    info.aliases()
+                        .forEach(alias -> this.aliasMap.put(alias, cmdMeta));
+                    this.aliasMap.putIfAbsent(commandName, cmdMeta);
+
                     category.addCommand(cmdMeta);
                 });
+
+                this.categoryMap.put(categoryInfo.name().toLowerCase(), category);
 
             });
 

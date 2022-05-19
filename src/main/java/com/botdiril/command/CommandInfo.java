@@ -3,10 +3,11 @@ package com.botdiril.command;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.util.StdConverter;
 
-import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 
+import com.botdiril.BotdirilStatic;
+import com.botdiril.permission.AbstractPowerLevelManager;
 import com.botdiril.permission.PowerLevel;
 
 @JsonDeserialize(converter = CommandInfo.CommandInfoConverter.class)
@@ -27,23 +28,28 @@ public record CommandInfo(
         @Override
         public CommandInfo convert(CommandInfo info)
         {
+            var defaultValues = defaultValue();
+
             return new CommandInfo(
-                Objects.requireNonNullElseGet(info.aliases(), Set::of),
-                Objects.requireNonNullElse(info.powerLevel(), PowerLevel.EVERYONE),
+                Objects.requireNonNullElseGet(info.aliases(), defaultValues::aliases),
+                Objects.requireNonNullElseGet(info.powerLevel(), defaultValues::powerLevel),
                 info.levelLock(),
-                Objects.requireNonNull(info.description(), "<description missing>")
+                Objects.requireNonNullElseGet(info.description(), defaultValues::description)
             );
         }
     }
 
     static CommandInfo defaultValue()
     {
+        var powerLevelMgr = BotdirilStatic.getBotdiril()
+                                          .getComponents()
+                                          .getComponent(AbstractPowerLevelManager.class);
+
         return new CommandInfo(
             Set.of(),
-            PowerLevel.SUPERUSER_OVERRIDE,
+            powerLevelMgr.getDefault(),
             0,
-            "<description missing>",
-            EnumSet.noneOf(EnumSpecialCommandProperty.class)
+            "<description missing>"
         );
     }
 }
