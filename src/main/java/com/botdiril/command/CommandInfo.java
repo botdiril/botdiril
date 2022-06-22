@@ -1,55 +1,55 @@
 package com.botdiril.command;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.util.StdConverter;
 
 import java.util.Objects;
 import java.util.Set;
 
-import com.botdiril.BotdirilStatic;
-import com.botdiril.permission.AbstractPowerLevelManager;
 import com.botdiril.permission.PowerLevel;
 
-@JsonDeserialize(converter = CommandInfo.CommandInfoConverter.class)
-public record CommandInfo(
-    Set<String> aliases,
-    PowerLevel powerLevel,
-    int levelLock,
-    String description
-)
+public class CommandInfo
 {
-    /**
-     * This is so tragic.
-     *
-     * Recreate the {@link CommandInfo} object with the correct default parameters.
-     * */
-    static class CommandInfoConverter extends StdConverter<CommandInfo, CommandInfo>
-    {
-        @Override
-        public CommandInfo convert(CommandInfo info)
-        {
-            var defaultValues = defaultValue();
+    private final Set<String> aliases;
 
-            return new CommandInfo(
-                Objects.requireNonNullElseGet(info.aliases(), defaultValues::aliases),
-                Objects.requireNonNullElseGet(info.powerLevel(), defaultValues::powerLevel),
-                info.levelLock(),
-                Objects.requireNonNullElseGet(info.description(), defaultValues::description)
-            );
-        }
+    @JsonDeserialize(using = PowerLevel.DefaultingPowerLevelDeserializer.class)
+    private final PowerLevel powerLevel;
+
+    private final String description;
+
+    @JsonCreator
+    public CommandInfo(
+        @JsonProperty("aliases") Set<String> aliases,
+        @JsonProperty("powerLevel") PowerLevel powerLevel,
+        @JsonProperty("description") String description)
+    {
+        this.aliases = Objects.requireNonNullElseGet(aliases, Set::of);
+        this.powerLevel = powerLevel;
+        this.description = Objects.requireNonNullElse(description, "<description missing>");
     }
 
-    static CommandInfo defaultValue()
+    /**
+     * @return The power level required to execute this command.
+     */
+    public PowerLevel getPowerLevel()
     {
-        var powerLevelMgr = BotdirilStatic.getBotdiril()
-                                          .getComponents()
-                                          .getComponent(AbstractPowerLevelManager.class);
+        return this.powerLevel;
+    }
 
-        return new CommandInfo(
-            Set.of(),
-            powerLevelMgr.getDefault(),
-            0,
-            "<description missing>"
-        );
+    /**
+     * @return The aliases for this command.
+     */
+    public Set<String> getAliases()
+    {
+        return this.aliases;
+    }
+
+    /**
+     * @return The description of this command.
+     */
+    public String getDescription()
+    {
+        return this.description;
     }
 }

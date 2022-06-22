@@ -10,16 +10,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
 import com.botdiril.command.ICommandManager;
+import com.botdiril.data.IDataScope;
+import com.botdiril.data.IGuildConfiguration;
 import com.botdiril.permission.IPowerLevelManager;
-import com.botdiril.serverdata.GuildPrefixMatcher;
+import com.botdiril.request.IGuildPrefixMatcher;
 
 public class EventBus extends BotdirilComponent
 {
     private final Botdiril botdiril;
 
-    private GuildPrefixMatcher guildPrefixMatcher;
+    private IGuildPrefixMatcher guildPrefixMatcher;
 
     private ICommandManager commandManager;
 
@@ -43,7 +46,7 @@ public class EventBus extends BotdirilComponent
     @Override
     protected void onMount(AbstractComponent<BotdirilComponent>.ComponentDependencyManager manager)
     {
-        this.guildPrefixMatcher = manager.declareDependency(ComponentToken.create(() -> new GuildPrefixMatcher(this.botdiril)));
+        this.guildPrefixMatcher = manager.declareDependency(ComponentToken.create(this.botdiril::createGuildPrefixMatcher));
         this.powerLevelManager = manager.declareDependency(ComponentToken.create(this.botdiril::createPowerLevelManager));
         this.commandManager = manager.declareDependency(ComponentToken.create(this.botdiril::createCommandManager));
         this.commandThreadPool = new ScheduledThreadPoolExecutor(Runtime.getRuntime().availableProcessors());
@@ -65,10 +68,10 @@ public class EventBus extends BotdirilComponent
 
     void onMessage(MessageReceivedEvent event)
     {
-        CompletableFuture.runAsync(() -> this.withExecutionLock(() -> this.handleMessage(event)), this.commandThreadPool);
+        CompletableFuture.runAsync(() -> this.withExecutionLock(scope -> this.handleMessage(scope, event)), this.commandThreadPool);
     }
 
-    private void withExecutionLock(Runnable runnable)
+    private void withExecutionLock(Consumer<IDataScope> func)
     {
         var readLock = this.ACCEPTING_COMMANDS.readLock();
 
@@ -77,7 +80,12 @@ public class EventBus extends BotdirilComponent
 
         try
         {
-            runnable.run();
+            var dataProvider = this.botdiril.getDataProvider();
+
+            try (var scope = dataProvider.createScope())
+            {
+                func.accept(scope);
+            }
         }
         finally
         {
@@ -85,42 +93,37 @@ public class EventBus extends BotdirilComponent
         }
     }
 
-    private void handleMessage(MessageReceivedEvent event)
+    private void handleMessage(IDataScope scope, MessageReceivedEvent event)
     {
-        var cm = this.botdiril.getConnectionManager();
-
-        try (var db = cm.getReadOnly())
+        if (event.isFromGuild())
         {
-            if (event.isFromGuild())
-            {
-                var message = event.getMessage();
-                var content = message.getContentRaw();
+            var message = event.getMessage();
+            var content = message.getContentRaw();
 
-                var match = this.guildPrefixMatcher.match(db, event.getGuildChannel(), content, false);
+            var match = this.guildPrefixMatcher.match(scope.get(IGuildConfiguration.class), event.getGuildChannel(), content, false);
 
-                if (!match.matched())
-                    return;
+            if (!match.matched())
+                return;
 
-                var prefix = match.prefixValue();
-                var prefixLength = prefix.codePoints()
-                                         .count();
+            var prefix = match.prefixValue();
+            var prefixLength = prefix.codePoints()
+                                     .count();
 
-                var contentNoPrefix = content.codePoints()
-                                             .skip(prefixLength)
-                                             .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-                                             .toString();
+            var contentNoPrefix = content.codePoints()
+                                         .skip(prefixLength)
+                                         .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                                         .toString();
 
-                var cmdParts = contentNoPrefix.split("\\s+", 2);
-                var cmdStr = cmdParts[0];
-                var cmdParams =  cmdParts.length == 2 ? cmdParts[1] : "";
+            var cmdParts = contentNoPrefix.split("\\s+", 2);
+            var cmdStr = cmdParts[0];
+            var cmdParams =  cmdParts.length == 2 ? cmdParts[1] : "";
 
-                var command = this.commandManager.findCommand(cmdStr);
+            var command = this.commandManager.findCommand(cmdStr);
 
-                if (command == null)
-                    return;
+            if (command == null)
+                return;
 
-                System.out.println(command);
-            }
+            event.getTextChannel().sendMessage(String.valueOf(command.getCommand())).queue();
         }
     }
 

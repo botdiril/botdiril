@@ -7,7 +7,6 @@ import org.intellij.lang.annotations.PrintFormat;
 
 import com.botdiril.response.IResponse;
 import com.botdiril.response.ResponseEmbed;
-import com.botdiril.framework.sql.connection.WriteDBConnection;
 
 public abstract class CommandContext
 {
@@ -16,16 +15,10 @@ public abstract class CommandContext
 
     protected User caller;
 
-    protected WriteDBConnection db;
     protected String botIconURL;
 
     protected IResponse response;
     protected boolean shouldSend = false;
-
-    public WriteDBConnection getDatabase()
-    {
-        return this.db;
-    }
 
     public JDA getJDA()
     {

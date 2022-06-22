@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ArgParser
+public class DefaultCommandArgumentParser
 {
     private static final int CP_QUOTE = '"';
 
@@ -15,7 +15,7 @@ public class ArgParser
     {
         int paramCount = parameters.size();
         var quoteCount = (int) contents.codePoints().filter(c -> c == CP_QUOTE).count();
-        var parser = new ArgParser(paramCount, quoteCount);
+        var parser = new DefaultCommandArgumentParser(paramCount, quoteCount);
         var cps = contents.codePoints();
         cps.forEachOrdered(parser::accept);
 
@@ -28,7 +28,7 @@ public class ArgParser
     private final int paramCount;
     private State state;
 
-    private ArgParser(int paramCount, int quoteCount)
+    private DefaultCommandArgumentParser(int paramCount, int quoteCount)
     {
         this.paramBuilders = new ArrayList<>(paramCount);
         this.remainingQuotes = quoteCount;

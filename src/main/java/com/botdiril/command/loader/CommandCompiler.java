@@ -13,8 +13,8 @@ import com.botdiril.BotdirilComponent;
 import com.botdiril.command.Command;
 import com.botdiril.command.CommandBase;
 import com.botdiril.command.CommandCategory;
-import com.botdiril.framework.util.BotdirilInitializationException;
 import com.botdiril.util.BotdirilLog;
+import com.botdiril.util.BotdirilSetupException;
 
 public class CommandCompiler extends BotdirilComponent
 {
@@ -24,7 +24,7 @@ public class CommandCompiler extends BotdirilComponent
 
     private final Set<CommandCategory> categories;
 
-    private final Map<CommandCategory, Map<Command, Class<? extends CommandBase>>> foundCommands = new HashMap<>();
+    private final Map<CommandCategory, Map<Command, Class<? extends CommandBase<?>>>> foundCommands = new HashMap<>();
 
     public CommandCompiler(Set<CommandCategory> categories)
     {
@@ -55,13 +55,13 @@ public class CommandCompiler extends BotdirilComponent
         }
         catch (Exception e)
         {
-            throw new BotdirilInitializationException("Failed to load command classes:", e);
+            throw new BotdirilSetupException("Failed to load command classes:", e);
         }
     }
 
-    private Map<Command, Class<? extends CommandBase>> loadCommands(List<StringJavaFileObject> javaFiles)
+    private Map<Command, Class<? extends CommandBase<?>>> loadCommands(List<StringJavaFileObject> javaFiles)
     {
-        var commands = new HashMap<Command, Class<? extends CommandBase>>();
+        var commands = new HashMap<Command, Class<? extends CommandBase<?>>>();
 
         javaFiles.stream()
                  .map(StringJavaFileObject::getClassName)
@@ -72,13 +72,16 @@ public class CommandCompiler extends BotdirilComponent
                      if (cmd == null)
                          return;
 
-                     commands.put(cmd, clazz.asSubclass(CommandBase.class));
+                     @SuppressWarnings("unchecked")
+                     var clz = (Class<? extends CommandBase<?>>) clazz;
+
+                     commands.put(cmd, clz);
                  });
 
         return commands;
     }
 
-    public Map<CommandCategory, Map<Command, Class<? extends CommandBase>>> getFoundCommands()
+    public Map<CommandCategory, Map<Command, Class<? extends CommandBase<?>>>> getFoundCommands()
     {
         return Collections.unmodifiableMap(this.foundCommands);
     }
@@ -130,7 +133,7 @@ public class CommandCompiler extends BotdirilComponent
         }
         catch (Exception e)
         {
-            throw new BotdirilInitializationException("Failed to load command group:", e);
+            throw new BotdirilSetupException("Failed to load command group:", e);
         }
     }
 

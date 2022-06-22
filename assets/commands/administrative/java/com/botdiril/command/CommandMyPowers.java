@@ -8,6 +8,7 @@ import com.botdiril.BotdirilStatic;
 import com.botdiril.command.context.CommandContext;
 import com.botdiril.command.invoke.CommandParam;
 import com.botdiril.permission.AbstractPowerLevelManager;
+import com.botdiril.permission.IPermissionDataSource;
 import com.botdiril.permission.PowerLevel;
 import com.botdiril.response.ResponseEmbed;
 
@@ -34,11 +35,10 @@ public class CommandMyPowers extends CommandBase
         eb.setThumbnail(user.getEffectiveAvatarUrl());
         eb.setFooter("User ID: " + user.getIdLong(), null);
 
-        var pwr = BotdirilStatic.getBotdiril()
-                                .getComponents()
-                                .getComponent(AbstractPowerLevelManager.class);
+        var pwr = this.botdiril.getComponents()
+                               .getComponent(AbstractPowerLevelManager.class);
 
-        pwr.getCumulativePowers(co.getDatabase(), user)
+        pwr.getCumulativePowers(co.getDataSource(IPermissionDataSource.class), user)
            .stream()
            .sorted(Comparator.comparing(PowerLevel::toString))
            .forEach(c -> eb.addField(c.toString(), c.getDescription(), false));

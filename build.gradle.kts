@@ -19,6 +19,7 @@ tasks.withType<Wrapper> {
 sourceSets {
     java {
         val mainSet = sourceSets.main.get()
+        val testSet = sourceSets.test.get()
 
         create("commands") {
             java.srcDirs(
@@ -27,6 +28,7 @@ sourceSets {
                 "assets/commands/superuser/java")
 
             compileClasspath += mainSet.compileClasspath + mainSet.output
+            compileClasspath += testSet.compileClasspath + testSet.output
         }
 
         val data = create("data") {
@@ -76,13 +78,13 @@ tasks.withType<com.botdiril.framework.util.BuildSchemasTask> {
 apply(plugin = "com.botdiril.botdiril-schema-autocompile-plugin")
 
 dependencies {
-    "dataImplementation"(api("com.botdiril", "botdiril-sql-framework", "0.3.0"))
+    "dataImplementation"(testImplementation("com.botdiril", "botdiril-sql-framework", "0.3.0"))
 
-    api(sourceSets["data"].output)
+    testImplementation(sourceSets["data"].output)
     testImplementation(files("$buildDir/generated/botdiril-sql"))
 
-    api("org.plutoengine", "plutolib", "22.3.0.0-alpha.0")
-    api("org.plutoengine", "plutocomponent", "22.3.0.0-alpha.0")
+    api("org.plutoengine", "plutolib", "22.3.0.0-alpha.1")
+    api("org.plutoengine", "plutocomponent", "22.3.0.0-alpha.1")
 
     implementation("org.yaml", "snakeyaml", "1.28")
 

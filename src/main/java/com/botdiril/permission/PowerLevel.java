@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.botdiril.BotdirilStatic;
+import com.botdiril.Botdiril;
 
 @JsonDeserialize(using = PowerLevel.PowerLevelDeserializer.class)
 public final class PowerLevel
@@ -122,7 +122,7 @@ public final class PowerLevel
 
     public static class PowerLevelDeserializer extends StdDeserializer<PowerLevel>
     {
-        protected PowerLevelDeserializer()
+        public PowerLevelDeserializer()
         {
             super(PowerLevel.class);
         }
@@ -130,12 +130,26 @@ public final class PowerLevel
         @Override
         public PowerLevel deserialize(JsonParser p, DeserializationContext ctxt) throws IOException
         {
+            var botdiril = (Botdiril) ctxt.getAttribute(Botdiril.class);
+
             var name = ctxt.readValue(p, String.class);
-            var pwrMgr = BotdirilStatic.getBotdiril()
-                                       .getComponents()
-                                       .getComponent(AbstractPowerLevelManager.class);
+            var pwrMgr = botdiril.getComponents()
+                                 .getComponent(AbstractPowerLevelManager.class);
 
             return pwrMgr.getByName(name.toLowerCase());
+        }
+    }
+
+    public static class DefaultingPowerLevelDeserializer extends PowerLevel.PowerLevelDeserializer
+    {
+        @Override
+        public PowerLevel deserialize(JsonParser p, DeserializationContext ctxt) throws IOException
+        {
+            var botdiril = (Botdiril) ctxt.getAttribute(Botdiril.class);
+            var powerLevelMgr = botdiril.getComponents()
+                                        .getComponent(AbstractPowerLevelManager.class);
+
+            return Objects.requireNonNullElseGet(super.deserialize(p, ctxt), powerLevelMgr::getDefault);
         }
     }
 }

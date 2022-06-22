@@ -21,7 +21,7 @@ public class BotdirilEventListener extends ListenerAdapter
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event)
     {
-        eventBus.onMessage(event);
+        this.eventBus.onMessage(event);
     }
 
     @Override

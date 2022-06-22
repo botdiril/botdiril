@@ -7,29 +7,27 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import com.botdiril.framework.sql.connection.ReadDBConnection;
-
-public final class PowerLevelManager extends AbstractPowerLevelManager
+public final class DefaultPowerLevelManager extends AbstractPowerLevelManager
 {
     private PowerLevel defaultPowerLevel;
 
-    private PowerLevelManager(Set<PowerLevel> powerLevels)
+    private DefaultPowerLevelManager(Set<PowerLevel> powerLevels)
     {
         super(powerLevels);
     }
 
-    public boolean check(ReadDBConnection db, User user, PowerLevel powerLevel)
+    public boolean check(IPermissionDataSource db, User user, PowerLevel powerLevel)
     {
         return this.getCumulativePowers(db, user)
                    .stream()
                    .anyMatch(powerLevel::isChildOf);
     }
 
-    public static PowerLevelManager create(PowerLevelTreeBuilderFunction function)
+    public static DefaultPowerLevelManager create(PowerLevelTreeBuilderFunction function)
     {
         var builder = new PowerLevelTreeBuilder();
         function.declareTree(builder);
-        var inst = new PowerLevelManager(builder.get());
+        var inst = new DefaultPowerLevelManager(builder.get());
         inst.defaultPowerLevel = builder.defaultPowerLevel;
         return inst;
     }

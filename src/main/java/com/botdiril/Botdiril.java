@@ -15,34 +15,37 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import com.botdiril.command.AbstractCommandManager;
-import com.botdiril.command.CommandManager;
-import com.botdiril.framework.sql.SqlEngine;
-import com.botdiril.framework.sql.connection.SqlConnectionConfig;
-import com.botdiril.framework.sql.connection.SqlConnectionManager;
-import com.botdiril.framework.sql.orm.ModelManager;
-import com.botdiril.framework.util.BotdirilInitializationException;
+import com.botdiril.command.DefaultCommandManager;
+import com.botdiril.data.AbstractDataProvider;
+import com.botdiril.data.IDataProvider;
+import com.botdiril.data.IDataScope;
+import com.botdiril.data.IDataSource;
 import com.botdiril.permission.AbstractPowerLevelManager;
-import com.botdiril.permission.PowerLevelManager;
+import com.botdiril.permission.DefaultPowerLevelManager;
+import com.botdiril.request.AbstractGuildPrefixMatcher;
+import com.botdiril.request.SimpleGuildPrefixMatcher;
+import com.botdiril.util.BotdirilSetupException;
 
 public class Botdiril
 {
     private final BotdirilConfig config;
-    private final ComponentManager<BotdirilComponent> components;
+    private final BotdirilComponentManager components;
     private ShardManager shardManager;
-    private ModelManager modelManager;
+    private IDataProvider dataProvider;
 
 
     public Botdiril(BotdirilConfig config)
     {
+        BotdirilStatic.initialize();
+
         this.config = config;
-        this.components = new ComponentManager<>(BotdirilComponent.class);
+        this.components = new BotdirilComponentManager(this);
     }
 
     protected void start()
     {
+        this.dataProvider = this.components.addComponent(ComponentToken.create(this::createDataProvider));
         this.components.addComponent(ComponentToken.create(() -> new EventBus(this)));
-        var botdirilConnectionConfig = new SqlConnectionConfig(this.config.getSqlHost(), this.config.getSqlUser(), this.config.getSqlPass(), "b50_discord");
-        this.modelManager = SqlEngine.create(botdirilConnectionConfig, this.config.getSchemaClasses());
 
         try
         {
@@ -58,7 +61,7 @@ public class Botdiril
         }
         catch (LoginException e)
         {
-            throw new BotdirilInitializationException("An exception has occurred while setting up JDA.", e);
+            throw new BotdirilSetupException("An exception has occurred while setting up JDA.", e);
         }
     }
 
@@ -72,19 +75,14 @@ public class Botdiril
         return this.components.getComponent(EventBus.class);
     }
 
+    public IDataProvider getDataProvider()
+    {
+        return this.dataProvider;
+    }
+
     public ComponentManager<BotdirilComponent> getComponents()
     {
         return this.components;
-    }
-
-    public ModelManager getModelManager()
-    {
-        return this.modelManager;
-    }
-
-    public SqlConnectionManager getConnectionManager()
-    {
-        return this.modelManager.getConnectionManager();
     }
 
     public String getDefaultPrefix()
@@ -107,14 +105,38 @@ public class Botdiril
         return "https://github.com/botdiril/botdiril";
     }
 
+    public AbstractDataProvider createDataProvider()
+    {
+        return new AbstractDataProvider()
+        {
+            @Override
+            public IDataScope createScope()
+            {
+                return new IDataScope()
+                {
+                    @Override
+                    public <T extends IDataSource> T get(Class<? extends T> klass)
+                    {
+                        return null;
+                    }
+                };
+            }
+        };
+    }
+
+    public AbstractGuildPrefixMatcher createGuildPrefixMatcher()
+    {
+        return new SimpleGuildPrefixMatcher(">");
+    }
+
     public AbstractCommandManager createCommandManager()
     {
-        return new CommandManager(this);
+        return new DefaultCommandManager();
     }
 
     public AbstractPowerLevelManager createPowerLevelManager()
     {
-        return PowerLevelManager.create(tree -> {
+        return DefaultPowerLevelManager.create(tree -> {
            var defaultLevel = tree.declarePowerLevel("default", "Default", "The default power level given to everyone.", pl -> {
                pl.implicitlyGrantedOn(Predicate.not(User::isBot));
            });

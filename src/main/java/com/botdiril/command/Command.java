@@ -10,5 +10,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(TYPE)
 public @interface Command
 {
+    /*
+     * The instance-unique name of the command.
+     */
     String value();
 }

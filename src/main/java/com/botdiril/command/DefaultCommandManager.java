@@ -18,13 +18,14 @@ import java.util.stream.Stream;
 
 import com.botdiril.Botdiril;
 import com.botdiril.command.loader.CommandCompiler;
-import com.botdiril.framework.util.BotdirilInitializationException;
+import com.botdiril.util.BotdirilLog;
+import com.botdiril.util.BotdirilSetupException;
 
-public class CommandManager extends AbstractCommandManager
+public class DefaultCommandManager extends AbstractCommandManager
 {
-    private final Logger logger = LogManager.getLogger(CommandManager.class);
+    private static final Path COMMAND_CONFIG_DIR = Path.of("assets", "commands");
 
-    private final Botdiril botdiril;
+    private final Logger logger = LogManager.getLogger(DefaultCommandManager.class);
 
     private final Map<String, CommandCategory> categoryMap;
 
@@ -33,10 +34,8 @@ public class CommandManager extends AbstractCommandManager
     private SortedSet<CommandMetadata> commands;
 
 
-    public CommandManager(Botdiril botdiril)
+    public DefaultCommandManager()
     {
-        this.botdiril = botdiril;
-
         this.categoryMap = new HashMap<>();
         this.aliasMap = new HashMap<>();
     }
@@ -62,20 +61,42 @@ public class CommandManager extends AbstractCommandManager
         return this.aliasMap.get(alias.toLowerCase());
     }
 
+    private CommandCategory loadCategory(String name)
+    {
+        BotdirilLog.logger.info("Loading category info '{}'", name);
+
+        var lowerName = name.toLowerCase(Locale.ROOT);
+
+        try (var reader = Files.newBufferedReader(COMMAND_CONFIG_DIR.resolve(Path.of(lowerName, "group-info.yaml"))))
+        {
+            var mapper = new ObjectMapper(new YAMLFactory())
+                .reader()
+                .withAttribute(Botdiril.class, this.getBotdiril());
+            return new CommandCategory(name, mapper.readValue(reader, CategoryInfo.class));
+        }
+        catch (Exception e)
+        {
+            throw new BotdirilSetupException("Failed to initialize command groups:", e);
+        }
+    }
+
     @Override
     protected void onMount(ComponentDependencyManager manager)
     {
-        var eventBus = this.botdiril.getEventBus();
+        var botdiril = this.getBotdiril();
+        var eventBus = botdiril.getEventBus();
         var writeLock = eventBus.ACCEPTING_COMMANDS.writeLock();
 
-        try (var reader = Files.newBufferedReader(Path.of("assets", "commands", "groups.yaml")))
+        try (var reader = Files.newBufferedReader(COMMAND_CONFIG_DIR.resolve(Path.of("groups.yaml"))))
         {
             writeLock.lock();
 
-            var mapper = new ObjectMapper(new YAMLFactory());
+            var mapper = new ObjectMapper(new YAMLFactory())
+                .reader()
+                .withAttribute(Botdiril.class, this.getBotdiril());
             var categoryNames = mapper.readValue(reader, String[].class);
             var categories = Arrays.stream(categoryNames)
-                                   .map(CommandCategory::load)
+                                   .map(this::loadCategory)
                                    .collect(Collectors.toSet());
 
             categories.forEach(cat -> this.categoryMap.put(cat.getName(), cat));
@@ -89,7 +110,8 @@ public class CommandManager extends AbstractCommandManager
                 var categoryCommandsMeta = categoryInfo.commands();
 
                 commandMap.forEach((commandAnnotation, commandClazz) -> {
-                    var commandName = commandAnnotation.value();
+                    var commandName = commandAnnotation.value()
+                                                       .toLowerCase();
                     this.logger.info("[+CMD] %s:%s of '%s'".formatted(category.getName(), commandName, commandClazz));
 
                     var handle = this.createCommandHandle(commandClazz);
@@ -97,7 +119,7 @@ public class CommandManager extends AbstractCommandManager
                     if (handle == null)
                         return;
 
-                    var info = categoryCommandsMeta.getOrDefault(commandName, CommandInfo.defaultValue());
+                    var info = categoryCommandsMeta.get(commandName);
 
                     var cmdMeta = new CommandMetadata(
                         category,
@@ -107,8 +129,9 @@ public class CommandManager extends AbstractCommandManager
                         handle
                     );
 
-                    info.aliases()
-                        .forEach(alias -> this.aliasMap.put(alias, cmdMeta));
+                    info.getAliases()
+                        .forEach(alias -> this.aliasMap.put(alias.toLowerCase(), cmdMeta));
+
                     this.aliasMap.putIfAbsent(commandName, cmdMeta);
 
                     category.addCommand(cmdMeta);
@@ -125,7 +148,7 @@ public class CommandManager extends AbstractCommandManager
         }
         catch (Exception e)
         {
-            throw new BotdirilInitializationException("Failed to initialize command groups:", e);
+            throw new BotdirilSetupException("Failed to initialize command groups:", e);
         }
         finally
         {
@@ -133,7 +156,7 @@ public class CommandManager extends AbstractCommandManager
         }
     }
 
-    private <T extends CommandBase> Supplier<T> createCommandHandle(Class<T> clazz)
+    private <T extends CommandBase<?>> Supplier<T> createCommandHandle(Class<T> clazz)
     {
         var lookup = MethodHandles.publicLookup();
 
@@ -157,7 +180,8 @@ public class CommandManager extends AbstractCommandManager
     @Override
     protected void onUnmount()
     {
-        var eventBus = this.botdiril.getEventBus();
+        var botdiril = this.getBotdiril();
+        var eventBus = botdiril.getEventBus();
         var writeLock = eventBus.ACCEPTING_COMMANDS.writeLock();
 
         try

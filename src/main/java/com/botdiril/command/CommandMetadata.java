@@ -7,22 +7,21 @@ import java.util.function.Supplier;
 
 public class CommandMetadata implements Comparable<CommandMetadata>
 {
-
     private final Command command;
 
     private final CommandInfo commandInfo;
 
-    private final Class<? extends CommandBase> definingClass;
+    private final Class<? extends CommandBase<?>> definingClass;
 
-    private final Supplier<? extends CommandBase> generator;
+    private final Supplier<? extends CommandBase<?>> generator;
 
     private final CommandCategory commandCategory;
 
     public CommandMetadata(CommandCategory commandCategory,
                            Command command,
                            CommandInfo commandInfo,
-                           Class<? extends CommandBase> definingClass,
-                           Supplier<? extends CommandBase> generator)
+                           Class<? extends CommandBase<?>> definingClass,
+                           Supplier<? extends CommandBase<?>> generator)
     {
         this.commandCategory = commandCategory;
         this.command = command;
@@ -41,12 +40,12 @@ public class CommandMetadata implements Comparable<CommandMetadata>
         return this.command;
     }
 
-    public Class<? extends CommandBase> getDefiningClass()
+    public Class<? extends CommandBase<?>> getDefiningClass()
     {
         return this.definingClass;
     }
 
-    public CommandBase createInstance()
+    public CommandBase<?> createInstance()
     {
         return this.generator.get();
     }

@@ -8,7 +8,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.botdiril.BotdirilComponent;
-import com.botdiril.framework.sql.connection.ReadDBConnection;
 
 public abstract class AbstractPowerLevelManager extends BotdirilComponent implements IPowerLevelManager
 {
@@ -31,7 +30,7 @@ public abstract class AbstractPowerLevelManager extends BotdirilComponent implem
      * @param user The invoking user
      * @return A set of all power levels that match the user's state
      */
-    protected Set<PowerLevel> getImplicitlyGrantedPowers(User user)
+    protected Set<PowerLevel> getImplicitlyGrantedPowers(IPermissionDataSource ds, User user)
     {
         return this.nameLookup.values()
                               .stream()
@@ -46,13 +45,13 @@ public abstract class AbstractPowerLevelManager extends BotdirilComponent implem
      *     This function works cumulatively.
      * </p>
      *
-     * @param db A connection to a database
+     * @param ds A connection to a database
      * @param user The invoking user
      * @return A set of all power levels this user possesses
      */
-    public Set<PowerLevel> getCumulativePowers(ReadDBConnection db, User user)
+    public Set<PowerLevel> getCumulativePowers(IPermissionDataSource ds, User user)
     {
-        return this.getImplicitlyGrantedPowers(user)
+        return this.getImplicitlyGrantedPowers(ds, user)
                    .stream()
                    .map(PowerLevel::getImplicitCumulativePowers)
                    .flatMap(Set::stream)
@@ -66,13 +65,13 @@ public abstract class AbstractPowerLevelManager extends BotdirilComponent implem
      *     This function works cumulatively.
      * </p>
      *
-     * @param db A database connection
+     * @param ds A database connection
      * @param user The invoking user
      * @return A set of all power levels this user can manage
      */
-    public Set<PowerLevel> getManageablePowers(ReadDBConnection db, User user)
+    public Set<PowerLevel> getManageablePowers(IPermissionDataSource ds, User user)
     {
-        return this.getCumulativePowers(db, user)
+        return this.getCumulativePowers(ds, user)
                    .stream()
                    .filter(PowerLevel::isAssignable)
                    .map(PowerLevel::getManagedPowers)
