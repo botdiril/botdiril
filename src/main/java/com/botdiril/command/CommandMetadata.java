@@ -5,6 +5,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Comparator;
 import java.util.function.Supplier;
 
+import com.botdiril.command.behavior.CommandBase;
+
 public class CommandMetadata implements Comparable<CommandMetadata>
 {
     private final Command command;

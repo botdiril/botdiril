@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 import com.botdiril.BotdirilComponent;
 import com.botdiril.command.Command;
-import com.botdiril.command.CommandBase;
+import com.botdiril.command.behavior.CommandBase;
 import com.botdiril.command.CommandCategory;
 import com.botdiril.util.BotdirilLog;
 import com.botdiril.util.BotdirilSetupException;

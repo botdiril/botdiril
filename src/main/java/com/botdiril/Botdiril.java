@@ -112,10 +112,10 @@ public class Botdiril
             @Override
             public IDataScope createScope()
             {
-                return new IDataScope()
-                {
+                return new IDataScope() {
+
                     @Override
-                    public <T extends IDataSource> T get(Class<? extends T> klass)
+                    public <C extends IDataSource> C get(Class<C> klass)
                     {
                         return null;
                     }

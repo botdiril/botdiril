@@ -1,4 +1,4 @@
-package com.botdiril.command;
+package com.botdiril.command.behavior;
 
 import com.botdiril.Botdiril;
 import com.botdiril.command.context.CommandContext;
@@ -11,9 +11,16 @@ public abstract class CommandBase<T extends CommandContext>
     protected Botdiril botdiril;
     protected T co;
     protected CommandAssertions assertion;
-    protected IDataScope ds;
 
-    public abstract void invoke();
+    protected IDataScope ds;
+    protected Runnable invokeHandler;
+
+    public abstract Runnable declareBehavior(CommandBehavior behavior);
+
+    public final void invoke()
+    {
+        this.invokeHandler.run();
+    }
 
     protected IDataScope getDataScope()
     {

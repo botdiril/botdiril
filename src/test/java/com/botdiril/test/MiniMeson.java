@@ -7,7 +7,6 @@ import java.nio.file.Path;
 
 import com.botdiril.Botdiril;
 import com.botdiril.data.AbstractDataProvider;
-import com.botdiril.data.IDataScope;
 import com.botdiril.framework.sql.SqlEngine;
 import com.botdiril.framework.sql.connection.SqlConnectionConfig;
 import com.botdiril.framework.sql.orm.ModelManager;
@@ -37,14 +36,7 @@ public class MiniMeson extends Botdiril
     @Override
     public AbstractDataProvider createDataProvider()
     {
-        return new AbstractDataProvider()
-        {
-            @Override
-            public IDataScope createScope()
-            {
-                return null;
-            }
-        };
+        return new MesonDataProvider();
     }
 
     @Override

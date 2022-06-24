@@ -100,7 +100,8 @@ public class EventBus extends BotdirilComponent
             var message = event.getMessage();
             var content = message.getContentRaw();
 
-            var match = this.guildPrefixMatcher.match(scope.get(IGuildConfiguration.class), event.getGuildChannel(), content, false);
+            var gc = scope.get(IGuildConfiguration.class);
+            var match = this.guildPrefixMatcher.match(gc, event.getGuildChannel(), content, false);
 
             if (!match.matched())
                 return;
