@@ -49,7 +49,7 @@ repositories {
 
     maven {
         name = "BotdirilVega"
-        url = uri("https://vega.botdiril.com")
+        url = uri("https://vega.botdiril.com/releases")
     }
 }
 
@@ -61,7 +61,7 @@ buildscript {
     repositories {
         maven {
             name = "BotdirilVega"
-            url = uri("https://vega.botdiril.com")
+            url = uri("https://vega.botdiril.com/releases")
         }
     }
 
@@ -93,9 +93,9 @@ dependencies {
 
     implementation("org.slf4j", "slf4j-api", "1.8.0-beta4")
     implementation("org.slf4j", "slf4j-simple", "1.8.0-beta4")
-    implementation("org.apache.logging.log4j", "log4j-core", "2.16.0")
-    implementation("org.apache.logging.log4j", "log4j-api", "2.16.0")
-    implementation("org.apache.logging.log4j", "log4j-slf4j-impl", "2.16.0")
+    implementation("org.apache.logging.log4j", "log4j-core", "2.20.0")
+    implementation("org.apache.logging.log4j", "log4j-api", "2.20.0")
+    implementation("org.apache.logging.log4j", "log4j-slf4j-impl", "2.20.0")
 
     implementation("org.apache.commons", "commons-lang3", "3.11")
     implementation("org.apache.commons", "commons-text", "1.9")
